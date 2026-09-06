@@ -1,0 +1,37 @@
+# Render Blueprint — declarative infra for openmanus on Render.
+# Reference: https://render.com/docs/blueprint-spec
+#
+# After this file lands on the default branch, Render will offer
+# "Apply Blueprint" → instant provisioning (no manual UI clicks
+# beyond the initial GitHub OAuth consent).
+
+services:
+  - type: web
+    name: openmanus
+    runtime: docker
+    plan: free
+    region: oregon
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: PORT
+        value: "10000"
+      # LLM provider — CometAPI (OpenAI-compatible). Set in Render dashboard,
+      # never commit real keys.
+      - key: OPENMANU_LLM_MODEL
+        value: "minimax-m3"
+      - key: OPENMANU_LLM_BASE_URL
+        value: "https://api.cometapi.com/v1"
+      - key: OPENMANU_LLM_API_KEY
+        sync: false          # mark as secret → stored encrypted
+      - key: OPENMANU_LLM_VISION_MODEL
+        value: "gemini-2.5-flash"
+      - key: OPENMANU_LLM_MAX_TOKENS
+        value: "8192"
+      - key: OPENMANU_LLM_TEMPERATURE
+        value: "0.0"
