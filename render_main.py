@@ -93,15 +93,29 @@ async def run(req: RunRequest) -> Dict[str, Any]:
 
     try:
         # Manus.run returns nothing useful directly; we rely on logger output.
-        # We approximate a result by capturing the last assistant message via
-        # agent.memory if exposed; otherwise we just return success.
         await agent.run(req.prompt)
 
         last_msg: Optional[str] = None
+        all_messages: list = []
         try:
             memory = getattr(agent, "memory", None)
             if memory is not None and getattr(memory, "messages", None):
-                last_msg = memory.messages[-1].content
+                for m in memory.messages:
+                    role = getattr(m, "role", "?")
+                    content = getattr(m, "content", "")
+                    if isinstance(content, list):
+                        # tool calls or multi-block content
+                        content = " ".join(
+                            str(b.get("text", b)) if isinstance(b, dict) else str(b)
+                            for b in content
+                        )
+                    all_messages.append({"role": role, "content": str(content)[:1500]})
+                last_msg = str(memory.messages[-1].content)
+                if isinstance(last_msg, list):
+                    last_msg = " ".join(
+                        str(b.get("text", b)) if isinstance(b, dict) else str(b)
+                        for b in last_msg
+                    )
         except Exception:  # pragma: no cover - best effort
             pass
 
@@ -110,6 +124,8 @@ async def run(req: RunRequest) -> Dict[str, Any]:
             "status": "completed",
             "prompt": req.prompt,
             "result": last_msg,
+            "messages": all_messages,
+            "step_count": len(all_messages),
         }
     except Exception as exc:
         logger.exception(f"[render-main] request {request_id} failed: {exc}")
