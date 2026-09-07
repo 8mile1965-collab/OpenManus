@@ -39,9 +39,11 @@ def main() -> int:
             file=sys.stderr,
         )
     else:
-        # Replace all REPLACE_AT_RUNTIME_FROM_ENV placeholders.
+        # Replace all REPLACE_AT_RUNTIME_FROM_ENV placeholders (config.toml shipped in repo).
         raw = raw.replace("REPLACE_AT_RUNTIME_FROM_ENV", api_key)
-        # Also override any explicit top-level settings from env.
+        # Also replace YOUR_API_KEY placeholders (config.example.toml when config.toml is absent).
+        raw = raw.replace("YOUR_API_KEY", api_key)
+        # Override any explicit top-level settings from env.
         raw = re.sub(
             r'(?<=model = ")[^"]+(?=")',
             _env("OPENMANU_LLM_MODEL", "minimax-m3"),
