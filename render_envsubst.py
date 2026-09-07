@@ -55,6 +55,17 @@ def main() -> int:
             count=1,
         )
 
+    # Ensure [daytona] section exists — DaytonaSettings requires daytona_api_key.
+    # Render free tier doesn't use Daytona; an empty placeholder is enough.
+    if "[daytona]" not in raw:
+        daytona_block = (
+            "\n[daytona]\n"
+            'daytona_api_key = ""\n'
+            'daytona_server_url = "https://app.daytona.io/api"\n'
+            'daytona_target = "us"\n'
+        )
+        raw = raw.rstrip() + "\n" + daytona_block
+
     CONFIG_PATH.write_text(raw, encoding="utf-8")
     print(f"[envsubst] wrote {CONFIG_PATH}", file=sys.stderr)
     return 0
