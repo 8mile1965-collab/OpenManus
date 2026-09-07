@@ -59,6 +59,27 @@ async def healthz() -> Dict[str, Any]:
     return {"status": "ok"}
 
 
+@app.get("/debug/config")
+async def debug_config() -> Dict[str, Any]:
+    """Debug endpoint: dump envsubst output + relevant env vars."""
+    config_path = ROOT / "config" / "config.toml"
+    config_text = ""
+    if config_path.exists():
+        config_text = config_path.read_text(encoding="utf-8")
+    return {
+        "config_toml_exists": config_path.exists(),
+        "config_toml_size": len(config_text),
+        "config_toml_first_500": config_text[:500],
+        "api_key_from_env_set": bool(os.environ.get("OPENMANU_LLM_API_KEY")),
+        "api_key_preview": (
+            (os.environ.get("OPENMANU_LLM_API_KEY") or "")[:6] + "..." +
+            (os.environ.get("OPENMANU_LLM_API_KEY") or "")[-4:]
+        ) if os.environ.get("OPENMANU_LLM_API_KEY") else "",
+        "model_env": os.environ.get("OPENMANU_LLM_MODEL"),
+        "base_url_env": os.environ.get("OPENMANU_LLM_BASE_URL"),
+    }
+
+
 @app.post("/run")
 async def run(req: RunRequest) -> Dict[str, Any]:
     request_id = uuid.uuid4().hex[:12]
