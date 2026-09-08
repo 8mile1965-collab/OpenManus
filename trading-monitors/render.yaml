@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: trading-monitors
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./data/trading/2026-09-07/Dockerfile
+    dockerContext: .
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 10001
