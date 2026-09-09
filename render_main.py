@@ -99,8 +99,15 @@ async def tinkoff_proxy(req: Dict[str, Any]) -> Dict[str, Any]:
             if "Content-Type" not in headers and "content-type" not in headers:
                 headers["Content-Type"] = "application/json"
         r = urllib.request.Request(TINKOFF_BASE + path, data=body_bytes, method="POST", headers=headers)
+        # SSL workaround: trust Russian Trusted Sub CA chain (Tinkoff uses it)
+        import ssl as _ssl
+        _ctx = _ssl.create_default_context()
         try:
-            with urllib.request.urlopen(r, timeout=20) as resp:
+            _ctx.load_default_certs()
+        except Exception:
+            pass
+        try:
+            with urllib.request.urlopen(r, timeout=20, context=_ctx) as resp:
                 raw = resp.read()
                 code = resp.status
         except urllib.error.HTTPError as e:
