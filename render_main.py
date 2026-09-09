@@ -80,6 +80,42 @@ async def debug_config() -> Dict[str, Any]:
     }
 
 
+# ----------------------------- tinkoff proxy ----------------------------- #
+import urllib.request, urllib.error
+TINKOFF_BASE = "https://invest-public-api.tinkoff.ru"
+
+
+@app.post("/proxy")
+async def tinkoff_proxy(req: Dict[str, Any]) -> Dict[str, Any]:
+    """Forward POST to invest-public-api.tinkoff.ru from Render's EU/US IP."""
+    try:
+        path = req.get("path", "/")
+        headers = req.get("headers") or {}
+        body = req.get("body")
+        body_bytes = None
+        if body is not None:
+            import json as _json
+            body_bytes = _json.dumps(body).encode("utf-8")
+            if "Content-Type" not in headers and "content-type" not in headers:
+                headers["Content-Type"] = "application/json"
+        r = urllib.request.Request(TINKOFF_BASE + path, data=body_bytes, method="POST", headers=headers)
+        try:
+            with urllib.request.urlopen(r, timeout=20) as resp:
+                raw = resp.read()
+                code = resp.status
+        except urllib.error.HTTPError as e:
+            raw = e.read() if hasattr(e, "read") else b""
+            code = e.code
+        text = raw.decode("utf-8", errors="replace")
+        try:
+            data = json.loads(text)
+        except Exception:
+            data = {"_raw": text[:2000]}
+        return {"status": code, "data": data}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 @app.post("/run")
 async def run(req: RunRequest) -> Dict[str, Any]:
     request_id = uuid.uuid4().hex[:12]
